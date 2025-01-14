@@ -1,0 +1,2 @@
+2025-01-14 20:29:11,588 - INFO - Student: Surojit, Marks: {'English': 88.0, 'Mathematics': 88.0, 'Science': 88.0, 'Hindi': 88.0, 'SST': 88.0}, Total: 440.0, Average: 88.0, Grade: A
+2025-01-14 20:30:50,301 - INFO - Student: Subhankar, Marks: {'English': 66.0, 'Mathematics': 66.0, 'Science': 66.0, 'Hindi': 66.0, 'SST': 66.0}, Total: 330.0, Average: 66.0, Grade: C
