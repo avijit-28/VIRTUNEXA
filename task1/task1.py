@@ -3,6 +3,8 @@ from tkinter import ttk, messagebox
 from datetime import datetime
 import csv
 import os
+import sqlite3
+import logging
 
 class GradeCalculatorGUI:
     def __init__(self, root):
@@ -116,6 +118,10 @@ class GradeCalculatorGUI:
             average_marks = total_marks / len(marks_dict)
             final_grade = self.calculate_grade(average_marks)
             
+            # Log calculation
+            log_calculation(name, marks_dict, total_marks, average_marks, final_grade)
+            log_grade_to_db(name, marks_dict, total_marks, average_marks, final_grade)
+            
             # Prepare data for CSV
             csv_data = [
                 name,
@@ -178,10 +184,129 @@ class GradeCalculatorGUI:
         self.result_text.delete(1.0, tk.END)
         self.result_text.config(state="disabled")
 
+# SQLite Functions
+
+def create_db():
+    """Creates a SQLite database to store the operation history."""
+    conn = sqlite3.connect("grade_calculator_history.db")
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS grade_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_name TEXT,
+            subject_marks TEXT,
+            total_marks REAL,
+            average_marks REAL,
+            final_grade TEXT,
+            timestamp TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def log_grade_to_db(student_name, marks_dict, total_marks, average_marks, final_grade):
+    """Logs grade calculation results to SQLite database."""
+    conn = sqlite3.connect("grade_calculator_history.db")
+    cursor = conn.cursor()
+    
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    cursor.execute('''
+        INSERT INTO grade_history (student_name, subject_marks, total_marks, average_marks, final_grade, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (student_name, str(marks_dict), total_marks, average_marks, final_grade, timestamp))
+    
+    conn.commit()
+    conn.close()
+
+# Logging Functions
+
+logging.basicConfig(filename="grade_calculator.log", level=logging.INFO, 
+                    format="%(asctime)s - %(levelname)s - %(message)s")
+
+def log_calculation(student_name, marks_dict, total_marks, average_marks, final_grade):
+    """Logs a grade calculation."""
+    logging.info(f"Student: {student_name}, Marks: {marks_dict}, Total: {total_marks}, Average: {average_marks}, Grade: {final_grade}")
+
+# Console Interface
+
+def console_interface():
+    """Console-based grade calculator interface."""
+    print("Welcome to the Grade Calculator!")
+    
+    student_name = input("Enter the student's name: ").strip()
+    if not student_name:
+        print("Error: Please enter a valid student name.")
+        return
+    
+    marks_dict = {}
+    subjects = ["English", "Mathematics", "Science", "Hindi", "SST"]
+    
+    for subject in subjects:
+        while True:
+            try:
+                marks = float(input(f"Enter marks for {subject} (0-100): ").strip())
+                if 0 <= marks <= 100:
+                    marks_dict[subject] = marks
+                    break
+                else:
+                    print(f"Error: Marks for {subject} must be between 0 and 100.")
+            except ValueError:
+                print(f"Error: Please enter a valid number for {subject}.")
+    
+    # Calculate total, average, and grade
+    total_marks = sum(marks_dict.values())
+    average_marks = total_marks / len(marks_dict)
+    
+    def calculate_grade(marks):
+        if marks >= 90:
+            return 'A+'
+        elif marks >= 80:
+            return 'A'
+        elif marks >= 70:
+            return 'B'
+        elif marks >= 60:
+            return 'C'
+        elif marks >= 50:
+            return 'D'
+        else:
+            return 'F'
+    
+    final_grade = calculate_grade(average_marks)
+    
+    # Log calculation
+    log_calculation(student_name, marks_dict, total_marks, average_marks, final_grade)
+    log_grade_to_db(student_name, marks_dict, total_marks, average_marks, final_grade)
+    
+    # Display results
+    print("\nGrade Report:")
+    print("="*50)
+    print(f"Student: {student_name}")
+    print(f"Total Marks: {total_marks}")
+    print(f"Average Marks: {average_marks:.2f}")
+    print(f"Final Grade: {final_grade}")
+    print("="*50)
+    
+    # Optionally, save results to CSV
+    csv_data = [student_name, marks_dict['English'], marks_dict['Mathematics'], marks_dict['Science'],
+                marks_dict['Hindi'], marks_dict['SST'], total_marks, average_marks, final_grade]
+    with open("export.csv", "a", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow(csv_data)
+    
+    print("Results have been saved to export.csv.")
+
 def main():
-    root = tk.Tk()
-    app = GradeCalculatorGUI(root)
-    root.mainloop()
+    create_db()  # Initialize SQLite database
+    choice = input("Choose interface (1 - Console, 2 - GUI): ").strip()
+    if choice == '1':
+        console_interface()
+    elif choice == '2':
+        root = tk.Tk()
+        app = GradeCalculatorGUI(root)
+        root.mainloop()
+    else:
+        print("Invalid choice.")
 
 if __name__ == "__main__":
     main()
