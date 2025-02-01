@@ -1,0 +1,2 @@
+weather api = 102a3b2fefa5a1c133384ff65a49ab04
+gemini api = AIzaSyCPDfg9TUbVqPLd5fFoK_S6iKFXkViINgo
